@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spelling Quest - Listen and Spell</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f3f6fa;}
+    #game-container { max-width: 500px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px #c3dafb;}
+    .title { font-size: 1.5em; color: #2e80b3; margin-bottom: 16px;}
+    #question { font-size: 1.2em; margin: 18px 0;}
+    .btn { background: #2e80b3; color: #fff; font-size:1em; border:0; border-radius:6px; padding:8px 18px; margin-top:6px; cursor:pointer;}
+    #score { font-size:1em; margin: 6px 0;}
+    #message { color: #2b9d4a; margin: 12px 0; font-size:1.1em;}
+    .hidden-answer { color: #d43a3a; font-weight:bold;}
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div class="title">Spelling Quest - Listen and Spell</div>
+    <div id="score"></div>
+    <div id="question"></div>
+    <input type="text" id="user-answer" autocomplete="off" style="display:none;">
+    <button class="btn" id="submit-btn" style="display:none;">Submit</button>
+    <button class="btn" id="speak-btn" style="display:none;">🔊 Hear the Word Again</button>
+    <div id="message"></div>
+    <div id="correct-answer" class="hidden-answer"></div>
+    <input type="text" id="practice-answer" autocomplete="off" style="display:none;">
+    <button class="btn" id="practice-submit" style="display:none;">Practice Spell</button>
+    <button class="btn" id="next-btn" style="display:none;">Next Word</button>
+  </div>
+<script>
+let words = [
+  "every", "which", "east", "cross", "right", "close", "choose", "though", "difference", "answer",
+  "until", "least", "favorite", "city", "while", "cloud", "example", "exercise", "pitcher", "those", "young", "watch",
+  "important", "river", "stir", "present", "toward", "beautiful", "however", "sentence", "through", "people",
+  "enough", "across", "group", "picture", "direction", "distance", "highway", "ocean", "punish", "wrinkle",
+  "scream", "navigate", "near", "theme", "reach", "amount", "cried", "wrong", "knee", "express", "knock", "knot",
+  "current", "science", "stone", "follow", "sign", "couldn't", "wouldn't", "paragraph", "graph", "along", "brought",
+  "shoulder", "can't", "gentle", "behavior", "choice", "pencil", "office", "table", "speech", "chance", "match", 
+  "ground", "loose", "lose", "looked", "disappear", "carry", "strange", "quiet", "different", "view", "review"
+];
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+shuffle(words);
+
+let current = 0;
+let score = 0;
+let restartingWord = false;
+
+function speakWord(word) {
+  if ('speechSynthesis' in window) {
+    let utter = new SpeechSynthesisUtterance(word);
+    utter.rate = 0.8;
+    utter.lang = 'en-US';
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
+}
+
+function showStatus() {
+  document.getElementById('score').textContent = `Score: ${score} | Word ${current+1} of ${words.length}`;
+}
+
+function clearPractice() {
+  document.getElementById('correct-answer').style.display = 'none';
+  document.getElementById('practice-answer').style.display = 'none';
+  document.getElementById('practice-answer').value = '';
+  document.getElementById('practice-submit').style.display = 'none';
+}
+
+function showWord() {
+  showStatus();
+  restartingWord = false;
+  document.getElementById('question').textContent = `Type the word you hear`;
+  document.getElementById('message').textContent = '';
+  document.getElementById('user-answer').value = '';
+  document.getElementById('user-answer').disabled = false;
+  document.getElementById('user-answer').style.display = 'inline-block';
+  document.getElementById('submit-btn').style.display = 'inline-block';
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('speak-btn').style.display = 'inline-block';
+  document.getElementById('speak-btn').disabled = false;
+  document.getElementById('user-answer').focus();
+  clearPractice();
+  document.getElementById('next-btn').style.display = 'none';
+  speakWord(words[current]);
+}
+
+document.getElementById('speak-btn').onclick = () => {
+  speakWord(words[current]);
+};
+
+function practiceMode() {
+  document.getElementById('practice-answer').style.display = 'inline-block';
+  document.getElementById('practice-answer').focus();
+  document.getElementById('practice-submit').style.display = 'inline-block';
+  document.getElementById('question').textContent = "Type the correct spelling for practice:";
+  document.getElementById('user-answer').style.display = 'none';
+  document.getElementById('submit-btn').style.display = 'none';
+  document.getElementById('speak-btn').style.display = 'none';
+}
+
+function nextWord() {
+  current++;
+  if(current >= words.length) {
+    document.getElementById('question').textContent = "🎉 All done!";
+    document.getElementById('user-answer').style.display = 'none';
+    document.getElementById('submit-btn').style.display = 'none';
+    document.getElementById('speak-btn').style.display = 'none';
+    document.getElementById('message').textContent = `You finished! Final Score: ${score}`;
+    clearPractice();
+    document.getElementById('next-btn').style.display = 'none';
+  } else {
+    showWord();
+  }
+}
+
+function checkAnswer() {
+  let input = document.getElementById('user-answer').value.trim().toLowerCase();
+  let word = words[current].toLowerCase();
+  if (input === word) {
+    if (!restartingWord) score += 10;
+    document.getElementById('message').textContent = "✅ Correct!";
+    document.getElementById('user-answer').disabled = true;
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('speak-btn').disabled = true;
+    document.getElementById('next-btn').style.display = 'inline-block';
+  } else {
+    document.getElementById('message').textContent = "❌ Oops!";
+    document.getElementById('correct-answer').style.display = 'block';
+    document.getElementById('correct-answer').textContent = `The correct spelling is: "${word}"`;
+    restartingWord = true;
+    practiceMode();
+  }
+  showStatus();
+}
+
+document.getElementById('submit-btn').onclick = checkAnswer;
+document.getElementById('user-answer').addEventListener("keyup", function(event) {
+  if (event.key === "Enter" && document.getElementById('submit-btn').style.display !== 'none')
+    checkAnswer();
+});
+
+function checkPractice() {
+  let input = document.getElementById('practice-answer').value.trim().toLowerCase();
+  let word = words[current].toLowerCase();
+  if (input === word) {
+    document.getElementById('message').textContent = "👍 Good job practicing!";
+    clearPractice();
+    setTimeout(showWord, 700); // retry the word from audio after practice
+  } else {
+    document.getElementById('message').textContent = "✋ Try again. Copy the correct spelling!";
+    document.getElementById('practice-answer').value = '';
+    document.getElementById('practice-answer').focus();
+  }
+}
+document.getElementById('practice-submit').onclick = checkPractice;
+document.getElementById('practice-answer').addEventListener("keyup", function(event) {
+  if (event.key === "Enter" && document.getElementById('practice-submit').style.display !== 'none')
+    checkPractice();
+});
+document.getElementById('next-btn').onclick = nextWord;
+
+// Initial load
+showWord();
+</script>
+</body>
+</html>
